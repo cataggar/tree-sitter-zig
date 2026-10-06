@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) !void {
     if (reuse_alloc) {
         lib.root_module.addCMacro("TREE_SITTER_REUSE_ALLOCATOR", "");
     }
-    if (optimize == .Debug) {
+    if (optimize == .debug) {
         lib.root_module.addCMacro("TREE_SITTER_DEBUG", "");
     }
 
@@ -68,26 +68,20 @@ pub fn build(b: *std.Build) !void {
     });
     tests.root_module.addImport(library_name, module);
 
-    // HACK: fetch tree-sitter dependency only when testing this module
-    //if (b.pkg_hash.len == 0) {
-    //    var args = try std.process.argsWithAllocator(b.allocator);
-    //    defer args.deinit();
-    //    while (args.next()) |a| {
-    //        if (std.mem.eql(u8, a, "test")) {
-    //            const ts_dep = b.lazyDependency("tree_sitter", .{}) orelse continue;
-    //            tests.root_module.addImport("tree-sitter", ts_dep.module("tree-sitter"));
-    //            break;
-    //        }
-    //    }
-    //}
-
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
+
+    if (b.lazyDependency("tree_sitter", .{
+        .target = target,
+        .optimize = optimize,
+    })) |ts_dep| {
+        tests.root_module.linkLibrary(ts_dep.artifact("tree-sitter"));
+    }
 }
 
 inline fn fileExists(b: *std.Build, filename: []const u8) bool {
-    const dir = b.build_root.handle;
-    dir.access(b.graph.io, filename, .{}) catch return false;
+    b.dependOnDirectoryContents(b.path(std.fs.path.dirname(filename) orelse "."));
+    b.root.access(b.graph.io, filename, .{}) catch return false;
     return true;
 }
