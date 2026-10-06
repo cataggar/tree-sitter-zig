@@ -9,6 +9,17 @@
 
 Zig grammar for [tree-sitter](https://github.com/tree-sitter/tree-sitter).
 
+## Zig build
+
+With Zig 0.17.0, `zig build` installs the shared grammar library, node types,
+and queries. Use `-Dbuild-shared=false` for a static library. The optional
+scanner and queries are resolved relative to the package root, including
+when the grammar is built as a dependency.
+
+`zig build test` checks that the C runtime accepts the grammar and retains
+the selected language. The test links the runtime directly without requiring
+a separate Zig binding package.
+
 ## References
 
 - [Zig Grammar](https://github.com/ziglang/zig-spec/blob/master/grammar/grammar.y)
